@@ -1,0 +1,65 @@
+import ibm_db
+import pandas
+import ibm_db_dbi
+
+# the below "nnnnnnnnnn" values represent values you can plug in yourself!
+
+dsn_hostname = "nnnnnnnnnn"   # hidden for privacy
+dsn_uid = "nnnnnnnnnn"        # hidden for privacy
+dsn_pwd = "nnnnnnnnnn"   # hidden for privacy
+dsn_driver = "{IBM DB2 ODBC DRIVER}"
+dsn_database = "BLUDB"            
+dsn_port = "nnnnnnnnnn"                
+dsn_protocol = "TCPIP"           
+dsn_security = "SSL"
+
+dsn = (
+    "DRIVER={0};"
+    "DATABASE={1};"
+    "HOSTNAME={2};"
+    "PORT={3};"
+    "PROTOCOL={4};"
+    "UID={5};"
+    "PWD={6};"
+    "SECURITY={7};").format(dsn_driver, dsn_database, dsn_hostname, 
+                            dsn_port, dsn_protocol, dsn_uid, dsn_pwd,
+                            dsn_security)
+
+#connect to database try/except
+try:
+    conn = ibm_db.connect(dsn, "", "")
+    print ("Connected to database: ", dsn_database, "as user: ", dsn_uid, 
+           "on host: ", dsn_hostname)
+except:
+    print ("Unable to connect: ", ibm_db.conn_errormsg() )
+
+#create table
+createQuery = """create table INSTRUCTOR(id INTEGER PRIMARY KEY NOT NULL
+fname VARCHAR(20) NOT NULL, lname VARCHAR(20) NOT NULL, city VARCHAR(20)
+NOT NULL, country VARCHAR(2) NOT NULL"""
+
+createStmt = ibm_db.exec_immediate(conn,createQuery)
+
+# sample insert statement here
+# insertQuery = """insert into INSTRUCTOR values (n, n, n, n, n)"""
+                 
+createStmt = ibm_db.replace_with_name_of_execution_method(conn, createQuery)
+
+selectQuery = "select * from INSTRUCTOR"
+selectStmt = ibm_db.exec_immediate(conn, selectQuery)
+
+ibm_db.fetch_both(selectStmt)
+
+#fetch id and fname from rows
+while ibm_db.fetch_row(selectStmt) != False:
+   print (" ID:",  ibm_db.result(selectStmt, 0), " FNAME:",  ibm_db.result(selectStmt, "FNAME"))
+
+#import into pandas df
+pconn = ibm_db_dbi.Connection(conn)
+pdf = pandas.read_sql(selectQuery, pconn)
+#print lname for first row in the pandas data frame
+pdf.LNAME[0]
+
+pdf #print df
+
+ibm_db.close(conn)
